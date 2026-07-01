@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Browse Jobs — AI Powered Resume Screening</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="os-navbar-mount"></div>
+
+<div class="app-shell">
+  <div id="os-sidebar-mount"></div>
+
+  <main class="app-main">
+    <div class="mb-4">
+      <div class="section-eyebrow">OPEN ROLES</div>
+      <h3 class="font-display mt-1" style="font-weight:700;">Browse jobs</h3>
+    </div>
+
+    <div class="os-card mb-4">
+      <div class="row g-2">
+        <div class="col-md-5">
+          <input type="text" class="form-control" id="searchInput" placeholder="Search by title, company, or location…">
+        </div>
+        <div class="col-md-3">
+          <input type="text" class="form-control" id="locationInput" placeholder="Location">
+        </div>
+        <div class="col-md-3">
+          <select class="form-select" id="employmentTypeInput">
+            <option value="">All employment types</option>
+            <option>Full-time</option>
+            <option>Part-time</option>
+            <option>Internship</option>
+            <option>Contract</option>
+          </select>
+        </div>
+        <div class="col-md-1">
+          <button class="btn-os-primary w-100" id="searchBtn"><i class="fa-solid fa-magnifying-glass"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <div id="jobsList" class="row g-3">
+      <div class="col-12"><div class="skeleton" style="height:100px;"></div></div>
+    </div>
+  </main>
+</div>
+
+<!-- Job details / apply modal -->
+<div class="modal fade" id="jobModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content" style="border-radius: var(--radius-md); border: none;">
+      <div class="modal-header" style="border-bottom: 1px solid var(--line);">
+        <h5 class="modal-title font-display" id="jobModalTitle">Job title</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="jobModalBody">
+        Loading…
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/ui.js"></script>
+<script>
+  window.__navActive = "jobs";
+  if (Auth.isLoggedIn() && Auth.getRole() === "candidate") renderSidebar("jobs");
+
+  let myProfile = null;
+  let myApplications = [];
+
+  function jobCard(job) {
+    const alreadyApplied = myApplications.some(a => a.job_id === job.id);
+    return `
+      <div class="col-md-6 col-lg-4">
+        <div class="os-card h-100 d-flex flex-column">
+          <div class="d-flex justify-content-between align-items-start">
+            <h5 class="mb-1">${job.title}</h5>
+            ${alreadyApplied ? '<span class="status-pill status-applied">Applied</span>' : ''}
+          </div>
+          <div class="text-muted mb-2" style="font-size:0.84rem;">
+            <i class="fa-regular fa-building me-1"></i>${job.company}
+            &nbsp;·&nbsp;<i class="fa-solid fa-location-dot me-1"></i>${job.location || "Remote"}
+          </div>
+          <div class="text-muted mb-2" style="font-size:0.82rem;">
+            <i class="fa-regular fa-clock me-1"></i>${job.employment_type}
+            &nbsp;·&nbsp;<i class="fa-solid fa-sack-dollar me-1"></i>${job.salary ? "$" + Number(job.salary).toLocaleString() : "Not disclosed"}
+          </div>
+          <div class="mb-3">${(job.required_skills || []).slice(0, 5).map(s => `<span class="skill-pill muted">${s}</span>`).join("")}</div>
+          <div class="mt-auto d-flex justify-content-between align-items-center">
+            <span class="text-muted mono" style="font-size:0.74rem;">Posted ${formatDate(job.posted_date)}</span>
+            <button class="btn-os-outline" style="padding:0.4rem 0.9rem; font-size:0.84rem;" onclick="openJobModal(${job.id})">View &amp; apply</button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  async function loadJobs() {
+    const mount = document.getElementById("jobsList");
+    const search = document.getElementById("searchInput").value.trim();
+    const location = document.getElementById("locationInput").value.trim();
+    const employmentType = document.getElementById("employmentTypeInput").value;
+
+    const params = new URLSearchParams({ page_size: "50" });
+    if (search) params.set("search", search);
+    if (location) params.set("location", location);
+    if (employmentType) params.set("employment_type", employmentType);
+
+    try {
+      const jobs = await Api.listJobs(`?${params.toString()}`);
+      mount.innerHTML = jobs.length
+        ? jobs.map(jobCard).join("")
+        : `<div class="col-12"><div class="empty-state"><i class="fa-regular fa-folder-open"></i>No jobs match your search.</div></div>`;
+    } catch (e) {
+      mount.innerHTML = `<div class="col-12"><div class="empty-state"><i class="fa-solid fa-triangle-exclamation"></i>Couldn't load jobs right now.</div></div>`;
+    }
+  }
+
+  document.getElementById("searchBtn").addEventListener("click", loadJobs);
+  document.getElementById("searchInput").addEventListener("keydown", (e) => { if (e.key === "Enter") loadJobs(); });
+
+  async function openJobModal(jobId) {
+    const modalEl = document.getElementById("jobModal");
+    const modal = new bootstrap.Modal(modalEl);
+    const body = document.getElementById("jobModalBody");
+    body.innerHTML = `<div class="skeleton" style="height:160px;"></div>`;
+    modal.show();
+
+    try {
+      const job = await Api.getJob(jobId);
+      document.getElementById("jobModalTitle").textContent = job.title;
+
+      const isLoggedIn = Auth.isLoggedIn();
+      const isCandidate = Auth.getRole() === "candidate";
+      const alreadyApplied = myApplications.some(a => a.job_id === job.id);
+
+      let applySection = "";
+      if (!isLoggedIn) {
+        applySection = `<a href="login.html" class="btn-os-primary w-100">Log in to apply</a>`;
+      } else if (!isCandidate) {
+        applySection = `<div class="text-muted">Admin accounts can't apply to jobs.</div>`;
+      } else if (alreadyApplied) {
+        applySection = `<div class="alert" style="background: var(--teal-light); color: var(--teal); border:none; border-radius: var(--radius-sm);"><i class="fa-solid fa-circle-check me-2"></i>You've already applied to this role.</div>`;
+      } else if (!myProfile || !myProfile.resume_path) {
+        applySection = `<div class="alert" style="background: var(--amber-light); color: var(--amber); border:none; border-radius: var(--radius-sm);">Upload your resume before applying. <a href="profile.html">Go to profile</a></div>`;
+      } else {
+        const match = computeQuickMatch(myProfile.technical_skills || [], job.required_skills || []);
+        applySection = `
+          <div class="mb-3 p-3" style="background:#FAFBFD; border-radius: var(--radius-sm); border:1px solid var(--line);">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="text-muted" style="font-size:0.82rem;">Your match for this role</span>
+              <span class="mono fw-bold" style="color: var(--signal);">${match.score}%</span>
+            </div>
+            <div>${match.matched.map(s => `<span class="skill-pill">${s}</span>`).join("")}${match.missing.map(s => `<span class="skill-pill missing">${s}</span>`).join("")}</div>
+          </div>
+          <form id="applyForm">
+            <div class="mb-2"><label class="form-label">Cover letter (optional)</label><textarea class="form-control" id="coverLetter" rows="3"></textarea></div>
+            <div class="row g-2 mb-3">
+              <div class="col-md-6"><label class="form-label">Preferred salary</label><input type="number" class="form-control" id="preferredSalary" value="${myProfile.expected_salary || ''}"></div>
+              <div class="col-md-6"><label class="form-label">Notice period</label><input type="text" class="form-control" id="noticePeriod" placeholder="e.g. 30 days"></div>
+            </div>
+            <button type="submit" class="btn-os-primary w-100" id="applySubmitBtn">Submit application</button>
+          </form>`;
+      }
+
+      body.innerHTML = `
+        <div class="d-flex flex-wrap gap-3 mb-3 text-muted" style="font-size:0.86rem;">
+          <span><i class="fa-regular fa-building me-1"></i>${job.company}</span>
+          <span><i class="fa-solid fa-location-dot me-1"></i>${job.location || "Remote"}</span>
+          <span><i class="fa-regular fa-clock me-1"></i>${job.employment_type}</span>
+          <span><i class="fa-solid fa-sack-dollar me-1"></i>${job.salary ? "$" + Number(job.salary).toLocaleString() : "Not disclosed"}</span>
+          <span><i class="fa-solid fa-briefcase me-1"></i>${job.required_experience}+ yrs exp</span>
+        </div>
+        <div class="mb-3">${(job.required_skills || []).map(s => `<span class="skill-pill muted">${s}</span>`).join("")}</div>
+        <h6>Description</h6>
+        <p class="text-muted" style="font-size:0.9rem;">${job.description || "—"}</p>
+        <h6>Responsibilities</h6>
+        <p class="text-muted" style="font-size:0.9rem;">${job.responsibilities || "—"}</p>
+        <hr class="divider-line">
+        ${applySection}
+      `;
+
+      const form = document.getElementById("applyForm");
+      if (form) {
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const btn = document.getElementById("applySubmitBtn");
+          btn.disabled = true; btn.textContent = "Submitting…";
+          try {
+            await Api.applyToJob({
+              job_id: job.id,
+              cover_letter: document.getElementById("coverLetter").value.trim() || null,
+              preferred_salary: document.getElementById("preferredSalary").value ? parseFloat(document.getElementById("preferredSalary").value) : null,
+              notice_period: document.getElementById("noticePeriod").value.trim() || null,
+            });
+            showToast("Application submitted!", "success");
+            modal.hide();
+            myApplications = await Api.myApplications();
+            loadJobs();
+          } catch (err) {
+            showToast(err.message, "error");
+            btn.disabled = false; btn.textContent = "Submit application";
+          }
+        });
+      }
+    } catch (e) {
+      body.innerHTML = `<div class="empty-state"><i class="fa-solid fa-triangle-exclamation"></i>Couldn't load this job.</div>`;
+    }
+  }
+
+  function computeQuickMatch(candidateSkills, jobSkills) {
+    const candSet = new Set(candidateSkills.map(s => s.toLowerCase()));
+    const matched = jobSkills.filter(s => candSet.has(s.toLowerCase()));
+    const missing = jobSkills.filter(s => !candSet.has(s.toLowerCase()));
+    const score = jobSkills.length ? Math.round((matched.length / jobSkills.length) * 100) : 0;
+    return { matched, missing, score };
+  }
+
+  async function init() {
+    if (Auth.isLoggedIn() && Auth.getRole() === "candidate") {
+      try {
+        [myProfile, myApplications] = await Promise.all([Api.getMyProfile(), Api.myApplications()]);
+      } catch (e) { /* non-fatal */ }
+    }
+    await loadJobs();
+
+    const preselect = new URLSearchParams(window.location.search).get("job");
+    if (preselect) openJobModal(parseInt(preselect, 10));
+  }
+  init();
+</script>
+</body>
+</html>

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Register — AI Powered Resume Screening</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="os-navbar-mount"></div>
+
+<section style="padding: 3rem 1rem 5rem; background: var(--paper);">
+  <div class="container" style="max-width: 760px;">
+    <div class="text-center mb-4">
+      <div class="section-eyebrow">CANDIDATE REGISTRATION</div>
+      <h2 class="font-display mt-1" style="font-weight:700;">Create your candidate profile</h2>
+      <p class="text-muted">Only candidates can self-register — admin accounts are provisioned internally.</p>
+    </div>
+
+    <div class="os-card">
+      <form id="registerForm" novalidate>
+
+        <h6 class="text-uppercase text-muted mb-3" style="font-size:0.78rem; letter-spacing:0.05em; font-weight:700;">Account</h6>
+        <div class="row g-3 mb-2">
+          <div class="col-md-6">
+            <label class="form-label">Full name *</label>
+            <input type="text" class="form-control" id="full_name" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Email *</label>
+            <input type="email" class="form-control" id="email" required>
+            <div class="form-text text-danger d-none" id="emailDupWarning" style="font-size:0.8rem;">An account with this email already exists.</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Phone number *</label>
+            <input type="tel" class="form-control" id="phone" placeholder="e.g. +91 98765 43210" required>
+            <div class="form-text text-danger d-none" id="phoneWarning" style="font-size:0.8rem;">Enter a valid phone number (at least 10 digits).</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Role</label>
+            <select class="form-select" id="role" disabled>
+              <option selected>Candidate</option>
+            </select>
+            <div class="form-text" style="font-size:0.78rem;">Admin accounts can't be created here.</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Password *</label>
+            <input type="password" class="form-control" id="password" required>
+            <div class="password-strength-bar"><div class="fill" id="pwFill"></div></div>
+            <div class="form-text" id="pwHint" style="font-size:0.78rem;">At least 8 characters, with letters and a number.</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Confirm password *</label>
+            <input type="password" class="form-control" id="confirm_password" required>
+            <div class="form-text text-danger d-none" id="pwMismatch" style="font-size:0.8rem;">Passwords don't match.</div>
+          </div>
+        </div>
+
+        <hr class="divider-line">
+
+        <h6 class="text-uppercase text-muted mb-3" style="font-size:0.78rem; letter-spacing:0.05em; font-weight:700;">Professional details (optional — can also fill in later)</h6>
+        <div class="row g-3 mb-2">
+          <div class="col-md-6">
+            <label class="form-label">Current company</label>
+            <input type="text" class="form-control" id="current_company">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Current designation</label>
+            <input type="text" class="form-control" id="current_designation">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Years of experience</label>
+            <input type="number" min="0" step="0.5" class="form-control" id="years_experience" value="0">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Highest qualification</label>
+            <input type="text" class="form-control" id="highest_qualification" placeholder="e.g. B.Tech CSE">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Location</label>
+            <input type="text" class="form-control" id="location" placeholder="City, Country">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Preferred job role</label>
+            <input type="text" class="form-control" id="preferred_job_role" placeholder="e.g. Java Developer">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Expected salary (annual)</label>
+            <input type="number" min="0" class="form-control" id="expected_salary">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">LinkedIn URL</label>
+            <input type="url" class="form-control" id="linkedin_url">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">GitHub URL</label>
+            <input type="url" class="form-control" id="github_url">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Portfolio URL</label>
+            <input type="url" class="form-control" id="portfolio_url">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Technical skills <span class="text-muted fw-normal">(comma separated)</span></label>
+            <input type="text" class="form-control" id="technical_skills" placeholder="Java, React, SQL">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Soft skills <span class="text-muted fw-normal">(comma separated)</span></label>
+            <input type="text" class="form-control" id="soft_skills" placeholder="Communication, Leadership">
+          </div>
+        </div>
+
+        <div class="form-check mt-3 mb-3">
+          <input class="form-check-input" type="checkbox" id="termsCheck" required>
+          <label class="form-check-label text-muted" for="termsCheck" style="font-size:0.88rem;">
+            I agree to the Terms and Conditions and Privacy Policy.
+          </label>
+        </div>
+
+        <div class="alert alert-danger py-2 px-3 d-none" id="registerError" style="font-size:0.86rem; border-radius: var(--radius-sm);"></div>
+        <div class="alert alert-success py-2 px-3 d-none" id="registerSuccess" style="font-size:0.86rem; border-radius: var(--radius-sm);">
+          <i class="fa-solid fa-circle-check me-1"></i> Account created! Redirecting you to your profile to upload your resume…
+        </div>
+
+        <button type="submit" class="btn-os-primary w-100" id="registerBtn">
+          <span id="registerBtnText">Create account</span>
+        </button>
+
+        <div class="text-center mt-3 text-muted" style="font-size:0.9rem;">
+          Already have an account? <a href="login.html">Log in</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/ui.js"></script>
+<script>
+  if (Auth.isLoggedIn()) {
+    window.location.href = Auth.getRole() === "admin" ? "admin-dashboard.html" : "candidate-dashboard.html";
+  }
+  window.__navActive = "";
+
+  const pwInput = document.getElementById("password");
+  const pwFill = document.getElementById("pwFill");
+  pwInput.addEventListener("input", () => {
+    const v = pwInput.value;
+    let score = 0;
+    if (v.length >= 8) score += 34;
+    if (/[A-Za-z]/.test(v) && /[0-9]/.test(v)) score += 33;
+    if (/[^A-Za-z0-9]/.test(v) || v.length >= 12) score += 33;
+    pwFill.style.width = Math.min(100, score) + "%";
+    pwFill.style.background = score < 40 ? "var(--red)" : score < 75 ? "var(--amber)" : "var(--teal)";
+  });
+
+  document.getElementById("phone").addEventListener("blur", function () {
+    const digits = this.value.replace(/\D/g, "");
+    document.getElementById("phoneWarning").classList.toggle("d-none", digits.length >= 10 || this.value === "");
+  });
+
+  document.getElementById("confirm_password").addEventListener("blur", () => {
+    const mismatch = document.getElementById("password").value !== document.getElementById("confirm_password").value;
+    document.getElementById("pwMismatch").classList.toggle("d-none", !mismatch);
+  });
+
+  document.getElementById("registerForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const errBox = document.getElementById("registerError");
+    const successBox = document.getElementById("registerSuccess");
+    errBox.classList.add("d-none");
+    document.getElementById("emailDupWarning").classList.add("d-none");
+
+    const password = document.getElementById("password").value;
+    const confirm = document.getElementById("confirm_password").value;
+    if (password !== confirm) {
+      document.getElementById("pwMismatch").classList.remove("d-none");
+      return;
+    }
+    if (!document.getElementById("termsCheck").checked) {
+      errBox.textContent = "Please accept the Terms and Conditions to continue.";
+      errBox.classList.remove("d-none");
+      return;
+    }
+
+    const btn = document.getElementById("registerBtn");
+    const btnText = document.getElementById("registerBtnText");
+    btn.disabled = true;
+    btnText.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Creating account…`;
+
+    const payload = {
+      full_name: document.getElementById("full_name").value.trim(),
+      email: document.getElementById("email").value.trim(),
+      phone: document.getElementById("phone").value.trim(),
+      password, confirm_password: confirm,
+      current_company: document.getElementById("current_company").value.trim() || null,
+      current_designation: document.getElementById("current_designation").value.trim() || null,
+      years_experience: parseFloat(document.getElementById("years_experience").value) || 0,
+      highest_qualification: document.getElementById("highest_qualification").value.trim() || null,
+      location: document.getElementById("location").value.trim() || null,
+      preferred_job_role: document.getElementById("preferred_job_role").value.trim() || null,
+      expected_salary: document.getElementById("expected_salary").value ? parseFloat(document.getElementById("expected_salary").value) : null,
+      linkedin_url: document.getElementById("linkedin_url").value.trim() || null,
+      github_url: document.getElementById("github_url").value.trim() || null,
+      portfolio_url: document.getElementById("portfolio_url").value.trim() || null,
+      technical_skills: document.getElementById("technical_skills").value.trim(),
+      soft_skills: document.getElementById("soft_skills").value.trim(),
+    };
+
+    try {
+      const result = await Api.register(payload);
+      Auth.setSession(result);
+      successBox.classList.remove("d-none");
+      setTimeout(() => { window.location.href = "profile.html?welcome=1"; }, 1200);
+    } catch (err) {
+      if (err.message.toLowerCase().includes("already exists")) {
+        document.getElementById("emailDupWarning").classList.remove("d-none");
+      }
+      errBox.textContent = err.message;
+      errBox.classList.remove("d-none");
+      btn.disabled = false;
+      btnText.textContent = "Create account";
+    }
+  });
+</script>
+</body>
+</html>

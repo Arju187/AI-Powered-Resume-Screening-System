@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Applications — AI Powered Resume Screening</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="os-navbar-mount"></div>
+
+<div class="app-shell">
+  <div id="os-sidebar-mount"></div>
+
+  <main class="app-main">
+    <div class="mb-4">
+      <div class="section-eyebrow">TRACK YOUR PROGRESS</div>
+      <h3 class="font-display mt-1" style="font-weight:700;">My applications</h3>
+    </div>
+
+    <div class="row g-2 mb-4" id="statusCards"></div>
+
+    <div class="os-card-flush">
+      <div class="d-flex gap-2 p-3 flex-wrap" id="statusTabs"></div>
+      <div id="applicationsList"></div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/ui.js"></script>
+<script>
+  if (!requireRole("candidate")) { throw new Error("redirecting"); }
+  window.__navActive = "dashboard";
+  renderSidebar("applications");
+
+  const STATUS_ORDER = ["applied", "shortlisted", "interview_scheduled", "selected", "offer_released", "joined", "rejected"];
+  const STATUS_ICONS = {
+    applied: "fa-regular fa-paper-plane", shortlisted: "fa-regular fa-star", interview_scheduled: "fa-regular fa-calendar",
+    selected: "fa-solid fa-check", offer_released: "fa-solid fa-file-signature", joined: "fa-solid fa-handshake", rejected: "fa-solid fa-xmark",
+  };
+
+  let allApplications = [];
+  let activeFilter = "all";
+
+  function renderStatusCards() {
+    const counts = {};
+    STATUS_ORDER.forEach(s => counts[s] = 0);
+    allApplications.forEach(a => counts[a.status] = (counts[a.status] || 0) + 1);
+
+    const mount = document.getElementById("statusCards");
+    mount.innerHTML = STATUS_ORDER.map(s => `
+      <div class="col-6 col-md-3 col-lg-auto flex-grow-1">
+        <div class="stat-card text-center" style="cursor:pointer;" onclick="setFilter('${s}')">
+          <i class="${STATUS_ICONS[s]} mb-2" style="color: var(--signal);"></i>
+          <div class="stat-value" style="font-size:1.4rem;">${counts[s]}</div>
+          <div class="stat-label">${statusLabel(s)}</div>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  function renderTabs() {
+    const mount = document.getElementById("statusTabs");
+    const tabs = ["all", ...STATUS_ORDER];
+    mount.innerHTML = tabs.map(t => `
+      <button class="btn-os-outline ${activeFilter === t ? 'active' : ''}" style="padding:0.35rem 0.9rem; font-size:0.82rem; ${activeFilter === t ? 'background:var(--ink); color:#fff; border-color:var(--ink);' : ''}" onclick="setFilter('${t}')">
+        ${t === "all" ? "All" : statusLabel(t)}
+      </button>
+    `).join("");
+  }
+
+  function setFilter(status) {
+    activeFilter = status;
+    renderTabs();
+    renderList();
+  }
+  window.setFilter = setFilter;
+
+  function renderList() {
+    const mount = document.getElementById("applicationsList");
+    const filtered = activeFilter === "all" ? allApplications : allApplications.filter(a => a.status === activeFilter);
+
+    if (!filtered.length) {
+      mount.innerHTML = `<div class="empty-state"><i class="fa-regular fa-folder-open"></i>No applications in this status yet.<br><a href="jobs.html" class="btn-os-primary mt-3 d-inline-block">Browse open jobs</a></div>`;
+      return;
+    }
+
+    mount.innerHTML = filtered.sort((a,b) => new Date(b.applied_at) - new Date(a.applied_at)).map(a => `
+      <div class="d-flex justify-content-between align-items-center p-3" style="border-bottom: 1px solid var(--line);">
+        <div>
+          <div class="d-flex align-items-center gap-2">
+            <span style="font-weight:700;">${a.job_title}</span>
+            <span class="status-pill status-${a.status}">${statusLabel(a.status)}</span>
+          </div>
+          <div class="text-muted" style="font-size:0.82rem;">${a.company} · Applied ${formatDate(a.applied_at)}</div>
+          <div class="mt-1">${a.matched_skills.slice(0,5).map(s => `<span class="skill-pill">${s}</span>`).join("")}</div>
+        </div>
+        <div class="text-end">
+          <div class="mono fw-bold" style="color: var(--signal);">${Math.round(a.recommendation_score)}%</div>
+          <div class="text-muted" style="font-size:0.72rem;">match score</div>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  async function loadApplications() {
+    try {
+      allApplications = await Api.myApplications();
+      renderStatusCards();
+      renderTabs();
+      renderList();
+    } catch (e) { showToast(e.message, "error"); }
+  }
+  loadApplications();
+</script>
+</body>
+</html>

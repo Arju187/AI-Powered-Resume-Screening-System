@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Profile — AI Powered Resume Screening</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="os-navbar-mount"></div>
+
+<div class="app-shell">
+  <div id="os-sidebar-mount"></div>
+
+  <main class="app-main">
+    <div class="alert d-none" id="welcomeBanner" style="background: var(--teal-light); border: none; border-radius: var(--radius-md); color: var(--teal); font-weight: 600;">
+      <i class="fa-solid fa-circle-check me-2"></i>Account created! Upload your resume below to get your ATS score and job recommendations.
+    </div>
+
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+      <div>
+        <div class="section-eyebrow">PROFILE &amp; RESUME</div>
+        <h3 class="font-display mt-1" style="font-weight:700;">My profile</h3>
+      </div>
+      <div id="profileGaugeMini"></div>
+    </div>
+
+    <div class="row g-3">
+      <!-- Resume card -->
+      <div class="col-lg-5">
+        <div class="os-card mb-3">
+          <div class="section-eyebrow mb-3">RESUME</div>
+          <div id="resumeStatusBlock">
+            <div class="skeleton" style="height:90px;"></div>
+          </div>
+
+          <div class="mt-3">
+            <label for="resumeFileInput" id="resumeDropzone" style="display:block; border: 2px dashed var(--line-strong); border-radius: var(--radius-md); padding: 1.4rem; text-align:center; cursor:pointer;">
+              <i class="fa-solid fa-cloud-arrow-up mb-2" style="font-size:1.4rem; color: var(--signal);"></i>
+              <div style="font-weight:600; font-size:0.9rem;">Click to upload your resume</div>
+              <div class="text-muted" style="font-size:0.78rem;">PDF only, max 5MB</div>
+            </label>
+            <input type="file" id="resumeFileInput" accept="application/pdf" class="d-none">
+          </div>
+          <div id="uploadProgress" class="d-none mt-2">
+            <div class="progress" style="height:6px; border-radius:4px;"><div class="progress-bar progress-bar-striped progress-bar-animated" style="width:100%; background: var(--signal);"></div></div>
+            <div class="text-muted mt-1" style="font-size:0.78rem;">Parsing resume…</div>
+          </div>
+        </div>
+
+        <div class="os-card">
+          <div class="section-eyebrow mb-3">PARSED RESUME DATA</div>
+          <div id="parsedDataBlock" class="text-muted" style="font-size:0.88rem;">No resume uploaded yet.</div>
+        </div>
+      </div>
+
+      <!-- Edit profile -->
+      <div class="col-lg-7">
+        <div class="os-card mb-3">
+          <div class="section-eyebrow mb-3">PROFESSIONAL DETAILS</div>
+          <form id="profileForm">
+            <div class="row g-3">
+              <div class="col-md-6"><label class="form-label">Full name</label><input class="form-control" id="full_name"></div>
+              <div class="col-md-6"><label class="form-label">Phone</label><input class="form-control" id="phone"></div>
+              <div class="col-md-6"><label class="form-label">Current company</label><input class="form-control" id="current_company"></div>
+              <div class="col-md-6"><label class="form-label">Current designation</label><input class="form-control" id="current_designation"></div>
+              <div class="col-md-4"><label class="form-label">Years of experience</label><input type="number" min="0" step="0.5" class="form-control" id="years_experience"></div>
+              <div class="col-md-4"><label class="form-label">Highest qualification</label><input class="form-control" id="highest_qualification"></div>
+              <div class="col-md-4"><label class="form-label">Location</label><input class="form-control" id="location"></div>
+              <div class="col-md-6"><label class="form-label">Preferred job role</label><input class="form-control" id="preferred_job_role"></div>
+              <div class="col-md-6"><label class="form-label">Expected salary</label><input type="number" min="0" class="form-control" id="expected_salary"></div>
+              <div class="col-md-4"><label class="form-label">LinkedIn URL</label><input class="form-control" id="linkedin_url"></div>
+              <div class="col-md-4"><label class="form-label">GitHub URL</label><input class="form-control" id="github_url"></div>
+              <div class="col-md-4"><label class="form-label">Portfolio URL</label><input class="form-control" id="portfolio_url"></div>
+              <div class="col-md-6"><label class="form-label">Technical skills <span class="text-muted fw-normal">(comma separated)</span></label><input class="form-control" id="technical_skills"></div>
+              <div class="col-md-6"><label class="form-label">Soft skills <span class="text-muted fw-normal">(comma separated)</span></label><input class="form-control" id="soft_skills"></div>
+            </div>
+            <button type="submit" class="btn-os-primary mt-3" id="saveProfileBtn">Save changes</button>
+          </form>
+        </div>
+
+        <div class="os-card">
+          <div class="section-eyebrow mb-3">CHANGE PASSWORD</div>
+          <form id="passwordForm" class="row g-3">
+            <div class="col-md-4"><label class="form-label">Current password</label><input type="password" class="form-control" id="current_password" required></div>
+            <div class="col-md-4"><label class="form-label">New password</label><input type="password" class="form-control" id="new_password" required></div>
+            <div class="col-md-4"><label class="form-label">Confirm new password</label><input type="password" class="form-control" id="confirm_new_password" required></div>
+            <div class="col-12">
+              <button type="submit" class="btn-os-outline">Update password</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/ui.js"></script>
+<script>
+  if (!requireRole("candidate")) { throw new Error("redirecting"); }
+  window.__navActive = "dashboard";
+  renderSidebar("profile");
+
+  if (new URLSearchParams(window.location.search).get("welcome")) {
+    document.getElementById("welcomeBanner").classList.remove("d-none");
+  }
+
+  let currentProfile = null;
+
+  function renderResumeStatus(profile) {
+    const mount = document.getElementById("resumeStatusBlock");
+    if (!profile.resume_path) {
+      mount.innerHTML = `<div class="text-muted" style="font-size:0.88rem;"><i class="fa-regular fa-file-pdf me-1"></i>No resume uploaded yet.</div>`;
+      return;
+    }
+    mount.innerHTML = `
+      <div class="d-flex justify-content-between align-items-center">
+        <div><i class="fa-regular fa-file-pdf me-2" style="color: var(--signal);"></i><span style="font-weight:600;">resume.pdf</span></div>
+        <div class="d-flex gap-2">
+          <button class="btn-os-outline" style="padding:0.3rem 0.7rem; font-size:0.78rem;" id="downloadResumeBtn"><i class="fa-solid fa-download"></i></button>
+          <button class="btn-os-danger-outline" style="padding:0.3rem 0.7rem; font-size:0.78rem;" id="deleteResumeBtn"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      </div>`;
+    document.getElementById("downloadResumeBtn").addEventListener("click", async () => {
+      const res = await fetch(`${API_BASE}/api/candidates/me/resume/download`, { headers: { Authorization: `Bearer ${Auth.getToken()}` } });
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "resume.pdf"; a.click();
+      URL.revokeObjectURL(url);
+    });
+    document.getElementById("deleteResumeBtn").addEventListener("click", async () => {
+      if (!confirm("Delete your uploaded resume? This will reset your ATS score.")) return;
+      try {
+        currentProfile = await Api.deleteResume();
+        renderAll(currentProfile);
+        showToast("Resume deleted", "success");
+      } catch (e) { showToast(e.message, "error"); }
+    });
+  }
+
+  function renderParsedData(profile) {
+    const mount = document.getElementById("parsedDataBlock");
+    const rd = profile.resume_data;
+    if (!rd) { mount.innerHTML = `No resume uploaded yet.`; return; }
+
+    const section = (label, items) => items && items.length ? `
+      <div class="mb-3">
+        <div class="text-muted text-uppercase" style="font-size:0.7rem; letter-spacing:0.04em; font-weight:700;">${label}</div>
+        <div class="mt-1">${items.map(i => `<div style="font-size:0.85rem;">• ${i}</div>`).join("")}</div>
+      </div>` : "";
+
+    mount.innerHTML = `
+      <div class="mb-3">
+        <div class="text-muted text-uppercase" style="font-size:0.7rem; letter-spacing:0.04em; font-weight:700;">Skills detected</div>
+        <div class="mt-1">${(rd.skills || []).map(s => `<span class="skill-pill">${s}</span>`).join("") || "<span class='text-muted'>None detected</span>"}</div>
+      </div>
+      ${section("Education", rd.education)}
+      ${section("Experience", rd.experience)}
+      ${section("Projects", rd.projects)}
+      ${section("Certifications", rd.certifications)}
+    `;
+  }
+
+  function renderAll(profile) {
+    renderAtsGauge(document.getElementById("profileGaugeMini"), profile.ats_score, { size: "sm" });
+    renderResumeStatus(profile);
+    renderParsedData(profile);
+
+    document.getElementById("full_name").value = profile.full_name || "";
+    document.getElementById("phone").value = profile.phone || "";
+    document.getElementById("current_company").value = profile.current_company || "";
+    document.getElementById("current_designation").value = profile.current_designation || "";
+    document.getElementById("years_experience").value = profile.years_experience || 0;
+    document.getElementById("highest_qualification").value = profile.highest_qualification || "";
+    document.getElementById("location").value = profile.location || "";
+    document.getElementById("preferred_job_role").value = profile.preferred_job_role || "";
+    document.getElementById("expected_salary").value = profile.expected_salary || "";
+    document.getElementById("linkedin_url").value = profile.linkedin_url || "";
+    document.getElementById("github_url").value = profile.github_url || "";
+    document.getElementById("portfolio_url").value = profile.portfolio_url || "";
+    document.getElementById("technical_skills").value = (profile.technical_skills || []).join(", ");
+    document.getElementById("soft_skills").value = (profile.soft_skills || []).join(", ");
+  }
+
+  async function loadProfile() {
+    try {
+      currentProfile = await Api.getMyProfile();
+      renderAll(currentProfile);
+    } catch (e) { showToast(e.message, "error"); }
+  }
+  loadProfile();
+
+  document.getElementById("resumeDropzone").addEventListener("dragover", (e) => { e.preventDefault(); });
+  document.getElementById("resumeDropzone").addEventListener("drop", (e) => {
+    e.preventDefault();
+    if (e.dataTransfer.files.length) {
+      document.getElementById("resumeFileInput").files = e.dataTransfer.files;
+      handleResumeUpload(e.dataTransfer.files[0]);
+    }
+  });
+  document.getElementById("resumeFileInput").addEventListener("change", (e) => {
+    if (e.target.files.length) handleResumeUpload(e.target.files[0]);
+  });
+
+  async function handleResumeUpload(file) {
+    if (file.type !== "application/pdf") { showToast("Only PDF files are accepted.", "error"); return; }
+    if (file.size > 5 * 1024 * 1024) { showToast("File exceeds the 5MB limit.", "error"); return; }
+
+    document.getElementById("uploadProgress").classList.remove("d-none");
+    const formData = new FormData();
+    formData.append("file", file);
+    try {
+      currentProfile = await Api.uploadResume(formData);
+      renderAll(currentProfile);
+      showToast(`Resume parsed! ATS score: ${Math.round(currentProfile.ats_score)}`, "success");
+    } catch (e) {
+      showToast(e.message, "error");
+    } finally {
+      document.getElementById("uploadProgress").classList.add("d-none");
+    }
+  }
+
+  document.getElementById("profileForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById("saveProfileBtn");
+    btn.disabled = true; btn.textContent = "Saving…";
+    try {
+      currentProfile = await Api.updateMyProfile({
+        full_name: document.getElementById("full_name").value.trim(),
+        phone: document.getElementById("phone").value.trim(),
+        current_company: document.getElementById("current_company").value.trim() || null,
+        current_designation: document.getElementById("current_designation").value.trim() || null,
+        years_experience: parseFloat(document.getElementById("years_experience").value) || 0,
+        highest_qualification: document.getElementById("highest_qualification").value.trim() || null,
+        location: document.getElementById("location").value.trim() || null,
+        preferred_job_role: document.getElementById("preferred_job_role").value.trim() || null,
+        expected_salary: document.getElementById("expected_salary").value ? parseFloat(document.getElementById("expected_salary").value) : null,
+        linkedin_url: document.getElementById("linkedin_url").value.trim() || null,
+        github_url: document.getElementById("github_url").value.trim() || null,
+        portfolio_url: document.getElementById("portfolio_url").value.trim() || null,
+        technical_skills: document.getElementById("technical_skills").value.split(",").map(s => s.trim()).filter(Boolean),
+        soft_skills: document.getElementById("soft_skills").value.split(",").map(s => s.trim()).filter(Boolean),
+      });
+      renderAll(currentProfile);
+      localStorage.setItem("ats_name", currentProfile.full_name);
+      showToast("Profile updated", "success");
+    } catch (e) { showToast(e.message, "error"); }
+    finally { btn.disabled = false; btn.textContent = "Save changes"; }
+  });
+
+  document.getElementById("passwordForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const newPw = document.getElementById("new_password").value;
+    const confirmPw = document.getElementById("confirm_new_password").value;
+    if (newPw !== confirmPw) { showToast("New passwords don't match.", "error"); return; }
+    try {
+      await Api.changePassword({
+        current_password: document.getElementById("current_password").value,
+        new_password: newPw,
+        confirm_new_password: confirmPw,
+      });
+      showToast("Password updated successfully", "success");
+      document.getElementById("passwordForm").reset();
+    } catch (e) { showToast(e.message, "error"); }
+  });
+</script>
+</body>
+</html>

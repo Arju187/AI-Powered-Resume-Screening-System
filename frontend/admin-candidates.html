@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Candidates — AI Powered Resume Screening Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="os-navbar-mount"></div>
+
+<div class="app-shell">
+  <div id="os-sidebar-mount"></div>
+
+  <main class="app-main">
+    <div class="mb-4">
+      <div class="section-eyebrow">CANDIDATE DATABASE</div>
+      <h3 class="font-display mt-1" style="font-weight:700;">Candidates</h3>
+    </div>
+
+    <div class="os-card mb-3">
+      <div class="row g-2">
+        <div class="col-md-4"><input type="text" class="form-control" id="searchInput" placeholder="Search by name or email…"></div>
+        <div class="col-md-3"><input type="text" class="form-control" id="skillInput" placeholder="Filter by skill (e.g. Java)"></div>
+        <div class="col-md-2"><input type="number" min="0" class="form-control" id="minExpInput" placeholder="Min. years exp"></div>
+        <div class="col-md-2"><input type="text" class="form-control" id="locationInput" placeholder="Location"></div>
+        <div class="col-md-1"><button class="btn-os-primary w-100" id="searchBtn"><i class="fa-solid fa-magnifying-glass"></i></button></div>
+      </div>
+    </div>
+
+    <div class="os-card-flush">
+      <table class="os-table">
+        <thead>
+          <tr><th>Candidate</th><th>Experience</th><th>ATS Score</th><th>Skills</th><th>Applied Jobs</th><th></th></tr>
+        </thead>
+        <tbody id="candidatesTableBody">
+          <tr><td colspan="6" class="text-center py-4 text-muted">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<!-- Candidate detail modal -->
+<div class="modal fade" id="candidateModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content" style="border-radius: var(--radius-md); border:none;">
+      <div class="modal-header" style="border-bottom: 1px solid var(--line);">
+        <h5 class="modal-title font-display" id="candidateModalTitle">Candidate</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="candidateModalBody">Loading…</div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/ui.js"></script>
+<script>
+  if (!requireRole("admin")) { throw new Error("redirecting"); }
+  window.__navActive = "dashboard";
+  renderSidebar("candidates");
+
+  async function loadCandidates() {
+    const tbody = document.getElementById("candidatesTableBody");
+    const params = new URLSearchParams({ page_size: "100" });
+    const search = document.getElementById("searchInput").value.trim();
+    const skill = document.getElementById("skillInput").value.trim();
+    const minExp = document.getElementById("minExpInput").value;
+    const location = document.getElementById("locationInput").value.trim();
+    if (search) params.set("search", search);
+    if (skill) params.set("skill", skill);
+    if (minExp) params.set("min_experience", minExp);
+    if (location) params.set("location", location);
+
+    try {
+      const candidates = await Api.adminListCandidates(`?${params.toString()}`);
+      if (!candidates.length) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No candidates match these filters.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = candidates.map(c => `
+        <tr>
+          <td>
+            <div style="font-weight:600;">${c.full_name}</div>
+            <div class="text-muted" style="font-size:0.8rem;">${c.email}</div>
+          </td>
+          <td>${c.years_experience} yrs</td>
+          <td><span class="mono fw-bold" style="color: var(--signal);">${Math.round(c.ats_score)}</span></td>
+          <td>${c.technical_skills.slice(0,4).map(s => `<span class="skill-pill muted">${s}</span>`).join("")}${c.technical_skills.length > 4 ? `<span class="text-muted" style="font-size:0.78rem;">+${c.technical_skills.length - 4}</span>` : ""}</td>
+          <td class="mono">${c.applied_jobs_count}</td>
+          <td class="text-end">
+            <button class="btn btn-sm" title="View profile" onclick="openCandidateModal(${c.id})"><i class="fa-regular fa-eye"></i></button>
+            ${c.resume_path ? `<a class="btn btn-sm" title="Download resume" href="${API_BASE}/${c.resume_path}" target="_blank"><i class="fa-solid fa-download"></i></a>` : ""}
+            <button class="btn btn-sm text-danger" title="Remove candidate" onclick="deleteCandidate(${c.id})"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        </tr>
+      `).join("");
+    } catch (e) {
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">Couldn't load candidates.</td></tr>`;
+    }
+  }
+
+  document.getElementById("searchBtn").addEventListener("click", loadCandidates);
+  [...document.querySelectorAll("#searchInput,#skillInput,#minExpInput,#locationInput")].forEach(el =>
+    el.addEventListener("keydown", (e) => { if (e.key === "Enter") loadCandidates(); })
+  );
+
+  async function openCandidateModal(id) {
+    const modal = new bootstrap.Modal(document.getElementById("candidateModal"));
+    const body = document.getElementById("candidateModalBody");
+    body.innerHTML = `<div class="skeleton" style="height:160px;"></div>`;
+    modal.show();
+
+    try {
+      const c = await Api.adminGetCandidate(id);
+      document.getElementById("candidateModalTitle").textContent = c.full_name;
+
+      const rd = c.resume_data;
+      const section = (label, items) => items && items.length ? `
+        <div class="mb-3"><div class="text-muted text-uppercase" style="font-size:0.7rem; letter-spacing:0.04em; font-weight:700;">${label}</div>
+        <div class="mt-1">${items.map(i => `<div style="font-size:0.85rem;">• ${i}</div>`).join("")}</div></div>` : "";
+
+      body.innerHTML = `
+        <div class="d-flex gap-3 align-items-center mb-3">
+          <div id="candGaugeMount"></div>
+          <div>
+            <div class="text-muted" style="font-size:0.85rem;"><i class="fa-regular fa-envelope me-1"></i>${c.email} &nbsp; <i class="fa-solid fa-phone ms-2 me-1"></i>${c.phone || "—"}</div>
+            <div class="text-muted" style="font-size:0.85rem;"><i class="fa-solid fa-location-dot me-1"></i>${c.location || "—"} &nbsp; <i class="fa-solid fa-briefcase ms-2 me-1"></i>${c.years_experience} yrs · ${c.current_designation || "—"} ${c.current_company ? "at " + c.current_company : ""}</div>
+          </div>
+        </div>
+        <div class="mb-3">${(c.technical_skills || []).map(s => `<span class="skill-pill">${s}</span>`).join("") || "<span class='text-muted'>No skills listed</span>"}</div>
+        <div class="row g-2 mb-3">
+          ${c.linkedin_url ? `<div class="col-auto"><a href="${c.linkedin_url}" target="_blank" class="btn-os-outline" style="padding:0.3rem 0.8rem; font-size:0.8rem;"><i class="fa-brands fa-linkedin me-1"></i>LinkedIn</a></div>` : ""}
+          ${c.github_url ? `<div class="col-auto"><a href="${c.github_url}" target="_blank" class="btn-os-outline" style="padding:0.3rem 0.8rem; font-size:0.8rem;"><i class="fa-brands fa-github me-1"></i>GitHub</a></div>` : ""}
+          ${c.portfolio_url ? `<div class="col-auto"><a href="${c.portfolio_url}" target="_blank" class="btn-os-outline" style="padding:0.3rem 0.8rem; font-size:0.8rem;"><i class="fa-solid fa-globe me-1"></i>Portfolio</a></div>` : ""}
+          ${c.resume_path ? `<div class="col-auto"><a href="${API_BASE}/${c.resume_path}" target="_blank" class="btn-os-primary" style="padding:0.3rem 0.8rem; font-size:0.8rem;"><i class="fa-solid fa-file-pdf me-1"></i>View resume</a></div>` : ""}
+        </div>
+        <hr class="divider-line">
+        ${rd ? `
+          ${section("Education", rd.education)}
+          ${section("Experience", rd.experience)}
+          ${section("Projects", rd.projects)}
+          ${section("Certifications", rd.certifications)}
+        ` : `<div class="text-muted">No resume uploaded yet.</div>`}
+      `;
+      renderAtsGauge(document.getElementById("candGaugeMount"), c.ats_score, { size: "sm" });
+    } catch (e) {
+      body.innerHTML = `<div class="empty-state"><i class="fa-solid fa-triangle-exclamation"></i>Couldn't load this candidate.</div>`;
+    }
+  }
+  window.openCandidateModal = openCandidateModal;
+
+  async function deleteCandidate(id) {
+    if (!confirm("Remove this candidate? This deletes their account, profile, and applications.")) return;
+    try {
+      await Api.adminDeleteCandidate(id);
+      showToast("Candidate removed", "success");
+      loadCandidates();
+    } catch (e) { showToast(e.message, "error"); }
+  }
+  window.deleteCandidate = deleteCandidate;
+
+  loadCandidates();
+</script>
+</body>
+</html>

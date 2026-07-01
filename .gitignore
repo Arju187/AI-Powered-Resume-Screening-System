@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# Environment secrets
+.env
+.env.example
+
+# Database
+backend/ats_system.db
+*.db
+
+# Uploaded files (keep folder structure, not contents)
+backend/uploads/resumes/*
+backend/uploads/profile_pictures/*
+!backend/uploads/resumes/.gitkeep
+!backend/uploads/profile_pictures/.gitkeep
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+

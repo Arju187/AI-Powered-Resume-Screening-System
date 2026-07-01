@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Job Postings — AI Powered Resume Screening  Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="os-navbar-mount"></div>
+
+<div class="app-shell">
+  <div id="os-sidebar-mount"></div>
+
+  <main class="app-main">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+      <div>
+        <div class="section-eyebrow">JOB POSTINGS</div>
+        <h3 class="font-display mt-1" style="font-weight:700;">Manage open roles</h3>
+      </div>
+      <button class="btn-os-primary" id="newJobBtn"><i class="fa-solid fa-plus me-2"></i>Post a job</button>
+    </div>
+
+    <div class="os-card mb-3">
+      <div class="row g-2">
+        <div class="col-md-6"><input type="text" class="form-control" id="searchInput" placeholder="Search by title, company, or location…"></div>
+        <div class="col-md-3">
+          <select class="form-select" id="statusFilter">
+            <option value="">All statuses</option>
+            <option value="open">Open</option>
+            <option value="closed">Closed</option>
+          </select>
+        </div>
+        <div class="col-md-3"><button class="btn-os-outline w-100" id="searchBtn">Search</button></div>
+      </div>
+    </div>
+
+    <div class="os-card-flush">
+      <table class="os-table">
+        <thead>
+          <tr>
+            <th>Title</th><th>Location</th><th>Type</th><th>Required Skills</th>
+            <th>Applicants</th><th>Status</th><th>Posted</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="jobsTableBody">
+          <tr><td colspan="8" class="text-muted text-center py-4">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<!-- Create/Edit Job Modal -->
+<div class="modal fade" id="jobFormModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content" style="border-radius: var(--radius-md); border:none;">
+      <div class="modal-header" style="border-bottom: 1px solid var(--line);">
+        <h5 class="modal-title font-display" id="jobFormTitle">Post a job</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="jobForm">
+          <input type="hidden" id="jobId">
+          <div class="row g-3">
+            <div class="col-md-6"><label class="form-label">Job title *</label><input class="form-control" id="title" required></div>
+            <div class="col-md-6"><label class="form-label">Company</label><input class="form-control" id="company" value="OctoSafes"></div>
+            <div class="col-md-4"><label class="form-label">Location</label><input class="form-control" id="location"></div>
+            <div class="col-md-4">
+              <label class="form-label">Employment type</label>
+              <select class="form-select" id="employmentType">
+                <option>Full-time</option><option>Part-time</option><option>Internship</option><option>Contract</option>
+              </select>
+            </div>
+            <div class="col-md-4"><label class="form-label">Salary (annual)</label><input type="number" min="0" class="form-control" id="salary"></div>
+            <div class="col-md-6"><label class="form-label">Required experience (years)</label><input type="number" min="0" step="0.5" class="form-control" id="requiredExperience" value="0"></div>
+            <div class="col-md-6"><label class="form-label">Closing date</label><input type="date" class="form-control" id="closingDate"></div>
+            <div class="col-12"><label class="form-label">Required skills <span class="text-muted fw-normal">(comma separated)</span></label><input class="form-control" id="requiredSkills" placeholder="Java, Spring Boot, SQL"></div>
+            <div class="col-12"><label class="form-label">Responsibilities</label><textarea class="form-control" id="responsibilities" rows="3"></textarea></div>
+            <div class="col-12"><label class="form-label">Description</label><textarea class="form-control" id="description" rows="3"></textarea></div>
+            <div class="col-md-6" id="statusFieldWrap" style="display:none;">
+              <label class="form-label">Status</label>
+              <select class="form-select" id="jobStatus"><option value="open">Open</option><option value="closed">Closed</option></select>
+            </div>
+          </div>
+          <button type="submit" class="btn-os-primary mt-3" id="jobFormSubmitBtn">Post job</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/ui.js"></script>
+<script>
+  if (!requireRole("admin")) { throw new Error("redirecting"); }
+  window.__navActive = "dashboard";
+  renderSidebar("jobs");
+
+  let editingJobId = null;
+  const jobFormModal = new bootstrap.Modal(document.getElementById("jobFormModal"));
+
+  async function loadJobs() {
+    const tbody = document.getElementById("jobsTableBody");
+    const search = document.getElementById("searchInput").value.trim();
+    const status = document.getElementById("statusFilter").value;
+
+    try {
+      // The public listing endpoint defaults to open-only when no status is given,
+      // so "All statuses" fetches open + closed separately and merges them.
+      let jobs;
+      if (!status) {
+        const [openJobs, closedJobs] = await Promise.all([
+          Api.listJobs(`?page_size=100${search ? "&search=" + encodeURIComponent(search) : ""}&status=open`),
+          Api.listJobs(`?page_size=100${search ? "&search=" + encodeURIComponent(search) : ""}&status=closed`),
+        ]);
+        jobs = [...openJobs, ...closedJobs];
+      } else {
+        jobs = await Api.listJobs(`?page_size=100${search ? "&search=" + encodeURIComponent(search) : ""}&status=${status}`);
+      }
+
+      if (!jobs.length) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">No job postings yet. Click "Post a job" to add one.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = jobs.map(j => `
+        <tr>
+          <td style="font-weight:600;">${j.title}</td>
+          <td>${j.location || "Remote"}</td>
+          <td>${j.employment_type}</td>
+          <td>${(j.required_skills || []).slice(0,3).map(s => `<span class="skill-pill muted">${s}</span>`).join("")}${j.required_skills.length > 3 ? `<span class="text-muted" style="font-size:0.78rem;">+${j.required_skills.length - 3}</span>` : ""}</td>
+          <td><a href="admin-job-candidates.html?job=${j.id}" class="mono">${j.applicants_count}</a></td>
+          <td><span class="status-pill ${j.status === 'open' ? 'status-shortlisted' : 'status-rejected'}">${j.status}</span></td>
+          <td class="text-muted">${formatDate(j.posted_date)}</td>
+          <td class="text-end">
+            <button class="btn btn-sm" title="View candidates" onclick="window.location.href='admin-job-candidates.html?job=${j.id}'"><i class="fa-solid fa-users"></i></button>
+            <button class="btn btn-sm" title="Edit" onclick="openEditJob(${j.id})"><i class="fa-solid fa-pen"></i></button>
+            <button class="btn btn-sm text-danger" title="Delete" onclick="deleteJob(${j.id})"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        </tr>
+      `).join("");
+    } catch (e) {
+      tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">Couldn't load jobs.</td></tr>`;
+    }
+  }
+
+  document.getElementById("searchBtn").addEventListener("click", loadJobs);
+  document.getElementById("statusFilter").addEventListener("change", loadJobs);
+
+  function resetJobForm() {
+    editingJobId = null;
+    document.getElementById("jobForm").reset();
+    document.getElementById("company").value = "OctoSafes";
+    document.getElementById("jobFormTitle").textContent = "Post a job";
+    document.getElementById("jobFormSubmitBtn").textContent = "Post job";
+    document.getElementById("statusFieldWrap").style.display = "none";
+  }
+
+  document.getElementById("newJobBtn").addEventListener("click", () => {
+    resetJobForm();
+    jobFormModal.show();
+  });
+
+  async function openEditJob(id) {
+    try {
+      const job = await Api.getJob(id);
+      editingJobId = id;
+      document.getElementById("jobFormTitle").textContent = "Edit job posting";
+      document.getElementById("jobFormSubmitBtn").textContent = "Save changes";
+      document.getElementById("statusFieldWrap").style.display = "block";
+
+      document.getElementById("title").value = job.title;
+      document.getElementById("company").value = job.company;
+      document.getElementById("location").value = job.location || "";
+      document.getElementById("employmentType").value = job.employment_type;
+      document.getElementById("salary").value = job.salary || "";
+      document.getElementById("requiredExperience").value = job.required_experience;
+      document.getElementById("closingDate").value = job.closing_date ? job.closing_date.split("T")[0] : "";
+      document.getElementById("requiredSkills").value = (job.required_skills || []).join(", ");
+      document.getElementById("responsibilities").value = job.responsibilities || "";
+      document.getElementById("description").value = job.description || "";
+      document.getElementById("jobStatus").value = job.status;
+
+      jobFormModal.show();
+    } catch (e) { showToast(e.message, "error"); }
+  }
+  window.openEditJob = openEditJob;
+
+  async function deleteJob(id) {
+    if (!confirm("Delete this job posting? This also removes its applications.")) return;
+    try {
+      await Api.deleteJob(id);
+      showToast("Job deleted", "success");
+      loadJobs();
+    } catch (e) { showToast(e.message, "error"); }
+  }
+  window.deleteJob = deleteJob;
+
+  document.getElementById("jobForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById("jobFormSubmitBtn");
+    btn.disabled = true;
+
+    const payload = {
+      title: document.getElementById("title").value.trim(),
+      company: document.getElementById("company").value.trim() || "OctoSafes",
+      location: document.getElementById("location").value.trim() || null,
+      employment_type: document.getElementById("employmentType").value,
+      salary: document.getElementById("salary").value ? parseFloat(document.getElementById("salary").value) : null,
+      required_experience: parseFloat(document.getElementById("requiredExperience").value) || 0,
+      required_skills: document.getElementById("requiredSkills").value.split(",").map(s => s.trim()).filter(Boolean),
+      responsibilities: document.getElementById("responsibilities").value.trim() || null,
+      description: document.getElementById("description").value.trim() || null,
+      closing_date: document.getElementById("closingDate").value ? new Date(document.getElementById("closingDate").value).toISOString() : null,
+    };
+
+    try {
+      if (editingJobId) {
+        payload.status = document.getElementById("jobStatus").value;
+        await Api.updateJob(editingJobId, payload);
+        showToast("Job updated", "success");
+      } else {
+        await Api.createJob(payload);
+        showToast("Job posted", "success");
+      }
+      jobFormModal.hide();
+      loadJobs();
+    } catch (e) { showToast(e.message, "error"); }
+    finally { btn.disabled = false; }
+  });
+
+  loadJobs();
+</script>
+</body>
+</html>
