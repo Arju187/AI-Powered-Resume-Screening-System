@@ -12,15 +12,16 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 120
 
     # Database
-    DATABASE_URL: str = "sqlite:///./ats_system.db"
+    DATABASE_URL: str = "mysql+pymysql://root:G2tech%40123$%25%5E@localhost:3306/resume_screening"
+
 
     # Uploads
     UPLOAD_DIR: str = "uploads"
     MAX_RESUME_SIZE_MB: int = 5
 
     # Default admin seed
-    ADMIN_EMAIL: str = "admin@octosafes-ats.com"
-    ADMIN_PASSWORD: str = "Admin@12345"
+    ADMIN_EMAIL: str = "admin@gmail.com"
+    ADMIN_PASSWORD: str = "Admin@123"
     ADMIN_NAME: str = "System Admin"
 
     # CORS

@@ -1,8 +1,3 @@
-/**
- * Thin fetch wrapper for the AI Powered Resume Screening API.
- * Stores the JWT in localStorage (standalone static app — not a Claude
- * artifact — so localStorage is the right tool here).
- */
 const API_BASE = "http://127.0.0.1:8000";
 
 const Auth = {
